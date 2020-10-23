@@ -13,6 +13,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	
 	protected String currentNode = null;
 	
+	
 	protected JSONAware  jsonToParse;
 
 	private static ArrayList<String> listaIstruzioniTestPostman = new ArrayList<String>();
