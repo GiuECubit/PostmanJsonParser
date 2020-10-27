@@ -5,26 +5,23 @@ import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
 public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object> {
 	
+	private static final Logger logger = LogManager.getLogger(JSONParserG.class);
+	
 	protected String currentNode = null;
-	
-	
 	protected JSONAware  jsonToParse;
-
-
 	private JSONParserG parent;
-
 
 	private static ArrayList<String> listaIstruzioniTestPostman = new ArrayList<String>();
 	private static ArrayList<String> listaIstruzioniCreazioneVariabiliPostman = new ArrayList<String>();
-	
 	private static ArrayList<String> listaNomiUniciVariabili = new ArrayList<String>();
-	
 	
 	public JSONParserG(JSONAware jsonToParse) {
 		this.jsonToParse = jsonToParse;
@@ -57,11 +54,11 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	
 	
 	@SuppressWarnings("unchecked")
-	protected String getSettingCollectionVariableString(String mainElement, String chiave, String subtree) {
+	protected String getSettingCollectionVariableString(String mainElement, String chiave, String subtree, String numberedVariableName) {
 		
 		try {
 			String snakedVariableName = getseparatedCase(mainElement, chiave, "_");
-			String variableName = getVariable(snakedVariableName);
+			String variableName = getNumberedVariable(snakedVariableName);
 
 			boolean thisIsArray = isJSONArray();
 			boolean parentIsNull = ( parent == null );
@@ -69,21 +66,33 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 			
 			long parentHashCode = (parent == null) ? 0l : parent.hashCode();
 			
-			System.out.println("-----------------------------------------");
-			System.out.println("------------>[" + thisIsArray + "]");
-			System.out.println("------------>parent[" + parentHashCode + "] currentnode[" + currentNode + "] chiave[" + chiave + "] subtree[" + subtree + "]");
-			System.out.println("------------>[" + parentIsArray +"]");
+			logger.debug("-----------------------------------------");
+			logger.debug("------------>[" + thisIsArray + "]");
+			logger.debug("------------>parent[" + parentHashCode + "] currentnode[" + currentNode + "] chiave[" + chiave + "] subtree[" + subtree + "]");
+			logger.debug("------------>[" + parentIsArray +"]");
 			
-			System.out.println("-----------------------------------------\n\n\n");
+			logger.debug("-----------------------------------------\n\n\n");
 			
 			// rimpiazza il JSON con i nomi delle variabili
 			if ( getParent() != null && getParent().isJSONArray() || isJSONArray() ) {
-					System.out.println("CHIAVE[" + chiave + "] subtree[" + subtree + "]");
+				String regexSubtree = "(<string>|<date>|<double>|<boolean>)";
+				subtree = subtree.replaceFirst(regexSubtree, getVariabilizedName(numberedVariableName) );
+
+				((HashMap<Object, Object>)jsonToParse).replace(mainElement, getVariabilizedName(numberedVariableName) );
+				
+				String regexChiave = "(" + chiave + ")";
+				chiave = chiave.replaceFirst(regexChiave, numberedVariableName );
+		
+					
+				System.out.println("ARRAY CHIAVE[" + chiave + "] numbered[" + numberedVariableName + "] subtree[" + subtree + "]");
+					
 			} else {
 				((HashMap<Object, Object>)jsonToParse).replace(chiave, getVariabilizedName(variableName) );
 			}
 			
-			return "pm.collectionVariables.set(\"" + variableName + "\", " + variableName + ");";
+			String definitionRow = "\nvar " + variableName + " = \n";
+			
+			return definitionRow + "pm.collectionVariables.set(\"" + variableName + "\", " + variableName + ");";
 		} catch ( Exception e ) {
 			throw new RuntimeException("Impossibile  ottenere il getSettingCollectionVariableString per mainelement[" + mainElement + "] chiave[" + chiave + "] subtree[" + subtree + "]", e );
 		}
@@ -115,14 +124,14 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	 * @param chiave
 	 * @return
 	 */
-	protected String getFullTestString(String mainElement, Object chiave) {
+	protected String getFullTestString(String mainElement, Object chiave, String numberedVariableName ) {
 
 		StringBuffer sb = new StringBuffer();
 
 		String jeararchizedObject = getseparatedCase(mainElement, chiave, ".");
 		String snakedVariableName = getseparatedCase(mainElement, chiave, "_");
-		String variableName = getVariable(snakedVariableName);
 		
+			
 		/*
 		 * const sports = jsonData.sport.find
 	      (m => m.id === pm.collectionVariables.get("sportCorrenteID"));
@@ -135,18 +144,17 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		// se e' un array la stringa di ricerca deve essere diversa
 		//if ( jsonToParse instanceof JSONArray ) {
 		 if ( getParent() != null && getParent().isJSONArray() || isJSONArray() ) {
-				String arrayNameDotKey = getseparatedCase(variableName, chiave, ".");
+				String arrayNameDotKey = getseparatedCase(numberedVariableName, chiave, ".");
 			
-				sb.append("const "+ arrayNameDotKey + " = jsonData." + mainElement + ".find (m => m." + chiave + " === pm.collectionVariables.get(\"" + variableName + "\") );\n");
+				sb.append("const "+ arrayNameDotKey + " = jsonData." + mainElement + ".find (m => m." + chiave + " === pm.collectionVariables.get(\"" + numberedVariableName + "\") );\n");
 
 		    //pm.expect(sports).to.include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport");
 		    //pm.expect(sports).to.be.an("object", "Impossibile ottenere l'oggetto sport")
-		    sb.append("pm.expect(" + arrayNameDotKey + ").include(pm.collectionVariables.get(\"" + variableName + "\"), \"Impossibile verificare " + variableName + "\")");
+		    sb.append("pm.expect(" + arrayNameDotKey + ").include(pm.collectionVariables.get(\"" + numberedVariableName + "\"), \"Impossibile verificare " + numberedVariableName + "\")");
 
 		} else {
-			sb.append("pm.expect(jsonData." + jeararchizedObject +").to.eql(pm.collectionVariables.get(\"" + snakedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(snakedVariableName) + " + \"]\")");			
+			sb.append("pm.expect(jsonData." + jeararchizedObject +").to.eql(pm.collectionVariables.get(\"" + numberedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(numberedVariableName) + " + \"]\")");			
 		}
-
 		return sb.toString() + "\n";
 	}
 	
@@ -168,31 +176,33 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	 */
 	@SuppressWarnings("unchecked")
 	protected void parseElement(Object chiave, Object subtree) {
-
+		
+		currentNode = chiave.toString();
+		
 		if ( ! ( subtree instanceof JSONArray ) && ! ( subtree instanceof JSONObject )   ) {
-			print(chiave.toString(), subtree.toString());
+			print( chiave.toString(), subtree.toString(), getNumberedVariable( chiave.toString() ));
 			
 //			coppieChiaviVariabile.put(chiave, getSnakedCase(padre, chiave));
 		
 		} else if ( subtree instanceof JSONArray ) {
-			System.out.println("PARSELEMENT ARRAY [" + chiave + "] [" + subtree + "]");
+			//System.out.println("PARSELEMENT ARRAY [" + chiave + "] [" + subtree + "]");
 			JSONArray jsonArray = (JSONArray) subtree;
-			currentNode = chiave.toString();
 			JSONParserG arrayParser = new JSONParserG(this, chiave, jsonArray);
 			jsonArray.forEach( arrayParser );
 			currentNode = null;
 		} else {
-			System.out.println("PARSELEMENT OBJECT [" + chiave + "] [" + subtree + "]");
+			//System.out.println("PARSELEMENT OBJECT [" + chiave + "] [" + subtree + "]");
 			JSONObject jsonObject = (JSONObject) subtree;
 			JSONParserG jsonParser = new JSONParserG(this, chiave, jsonObject);
 			jsonObject.forEach( jsonParser );
 		}
 	}
 
-	private void print(String chiave, String subtree) {
+	private void print(String chiave, String subtree, String numberedVariable) {
 		
-		String creazioneVariabile = getSettingCollectionVariableString(currentNode, chiave, subtree);		
-		String rigaTest = getFullTestString(currentNode, chiave);
+
+		String creazioneVariabile = getSettingCollectionVariableString(currentNode, chiave, subtree, numberedVariable);		
+		String rigaTest = getFullTestString(currentNode, chiave, numberedVariable);
 		
 		listaIstruzioniCreazioneVariabiliPostman.add(creazioneVariabile);
 		listaIstruzioniTestPostman.add(rigaTest);
@@ -200,30 +210,35 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	
 	
 	public void printAll() {
-		System.out.println("\n############### listaOrdinataTestPostman ######################");
+		logger.info("\n############### listaOrdinataTestPostman ######################");
 		for (String rigaCorrenteTest : listaIstruzioniTestPostman) {
 			System.out.println(rigaCorrenteTest);
 		}
-		System.out.println("#############-- FINE listaOrdinataTestPostman --####################");
+		logger.info("#############-- FINE listaOrdinataTestPostman --####################");
 		
-		System.out.println("\n############### listaOrdinataCreazioneVariabiliPostman ######################");
+		
+		logger.info("\n############### listaOrdinataCreazioneVariabiliPostman ######################");
 		for (String rigaCorrenteVariabile : listaIstruzioniCreazioneVariabiliPostman) {
 			System.out.println(rigaCorrenteVariabile);
 		}
-		System.out.println("#############-- FINE listaOrdinataCreazioneVariabiliPostman --####################");
+		logger.info("#############-- FINE listaOrdinataCreazioneVariabiliPostman --####################");
 		
 		
-		System.out.println("\n############### listaOrdinataCreazioneVariabiliPostman ######################");
+		logger.info("\n############### listaOrdinataCreazioneVariabiliPostman ######################");
 		System.out.println(jsonToParse);
-		System.out.println("#############-- FINE listaOrdinataCreazioneVariabiliPostman --####################");
+		logger.info("#############-- FINE listaOrdinataCreazioneVariabiliPostman --####################");
 	}
 	
 	
-	private String getVariable(String variableName ) {
+	private String getNumberedVariable(String variableName ) {
 		
-		while ( listaNomiUniciVariabili.contains( variableName ) ) {
-			variableName = variableName + "_";
+		int i = 0;
+		
+		while ( listaNomiUniciVariabili.contains( (variableName + i)  ) ) {
+			i++;
 		}
+		
+		variableName = variableName + i;
 		
 		listaNomiUniciVariabili.add(variableName);
 		
@@ -238,7 +253,11 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	
 	@Override
 	public void accept(Object subtree) {
-		System.out.println("Parsing Array for currentnode[" + currentNode + "] subtree[" + subtree + "]");
+		if ( currentNode == null ) {
+			logger.debug("CurrentNode [" + currentNode + "]");
+			currentNode = "";
+		}
+		logger.debug("Parsing Array for currentnode[" + currentNode + "] subtree[" + subtree + "]");
 		parseElement(currentNode, subtree);
 	}
 
