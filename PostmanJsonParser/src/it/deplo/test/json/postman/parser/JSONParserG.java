@@ -56,10 +56,12 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		
 		boolean checkParentChainNotNull = parentChain != null; 
 		boolean checkParentChainNotEmpty = ! "".equals( parentChain );
+
 		
-		logger.debug("checkParentChainNotNull " + checkParentChainNotNull);
-		logger.debug("checkParentChainNotEmpty " + checkParentChainNotEmpty);
-		
+		if ( false ) {		
+			logger.debug("checkParentChainNotNull " + checkParentChainNotNull);
+			logger.debug("checkParentChainNotEmpty " + checkParentChainNotEmpty);
+		}		
 		
 		
 		if ( checkParentChainNotNull && checkParentChainNotEmpty && parent.isJSONObject() ) {
@@ -67,7 +69,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		} else {
 			this.chain = currentNode;
 		}
-		if (parent != null ) {
+		if (parent != null && false ) {
 			logger.debug("PARENTCHAIN[" + parentChain + "]  chain[" + chain + "]");
 			logger.debug("IO sono [" + currentNode + "] e mio padre e'[" + parent.getCurrentNode() + "]");
 			logger.debug("io sono[" + jsonToParse.getClass() + "] e parent[" + parent.jsonToParse.getClass() + "] quindi CHAIN[" + chain + "]");
@@ -94,16 +96,20 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	protected String getSettingCollectionVariableString(String mainElement, String chiave, String subtree, String numberedVariableName) {
 		
 		try {
-			String snakedVariableName = getseparatedCase(mainElement, chiave, "_");
-			String variableName = getNumberedVariable(snakedVariableName);
+			String snakedVariableName = getseparatedCase(mainElement, numberedVariableName, "_");
+			//String variableName = getNumberedVariable(snakedVariableName);
+			String variableName = snakedVariableName;
 
-			boolean thisIsArray = isJSONArray();
+
+			/*
+			 * 
+			 * 
+ 			boolean thisIsArray = isJSONArray();
 			boolean parentIsNull = ( parent == null );
 			boolean parentIsArray = !parentIsNull && parent.isJSONArray();
 			
 			long parentHashCode = (parent == null) ? 0l : parent.hashCode();
 
-			/*
 			logger.debug("-----------------------------------------");
 			logger.debug("thisIsArray ------------>[" + thisIsArray + "]");
 			logger.debug("parentHashCode --------->parent[" + parentHashCode + "] chain[" + chain + "] currentnode[" + currentNode + "] chiave[" + chiave + "] subtree[" + subtree + "]");
@@ -150,7 +156,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		
 		String composed = chiave.toString();
 		
-		if ( padre != null ) {
+		if ( padre != null &&  ( ! "".equals(padre) )  ) {
 			composed = padre + separator + chiave.toString();
 		}
 		return composed;
@@ -168,7 +174,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 
 		StringBuffer sb = new StringBuffer();
 
-		String jeararchizedObject = getseparatedCase(mainElement, chiave, ".");
+		String jerarchizedObject = getseparatedCase(getChain(), chiave, ".");
 		String snakedVariableName = getseparatedCase(mainElement, chiave, "_");
 		
 			
@@ -193,7 +199,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		    sb.append("pm.expect(" + arrayNameDotKey + ").include(pm.collectionVariables.get(\"" + numberedVariableName + "\"), \"Impossibile verificare " + numberedVariableName + "\")");
 
 		} else {
-			sb.append("pm.expect(jsonData." + jeararchizedObject +").to.eql(pm.collectionVariables.get(\"" + numberedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(numberedVariableName) + " + \"]\")");			
+			sb.append("pm.expect(jsonData." + jerarchizedObject +").to.eql(pm.collectionVariables.get(\"" + snakedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(snakedVariableName) + " + \"]\")");			
 		}
 		return sb.toString() + "\n";
 	}
@@ -281,6 +287,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		return variableName;
 		
 	}
+	
 
 	private String getVariabilizedName ( String variableName ) {
 		return new String("{{" + variableName + "}}" );
