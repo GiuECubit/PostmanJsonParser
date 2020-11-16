@@ -175,31 +175,18 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		StringBuffer sb = new StringBuffer();
 
 		String jerarchizedObject = getseparatedCase(getChain(), chiave, ".");
-		String snakedVariableName = getseparatedCase(mainElement, chiave, "_");
+		String snakedVariableName = getseparatedCase(mainElement, numberedVariableName, "_");
 		
-			
-		/*
-		 * const sports = jsonData.sport.find
-	      (m => m.id === pm.collectionVariables.get("sportCorrenteID"));
-
-	    //pm.expect(sports).to.include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport");
-	    //pm.expect(sports).to.be.an("object", "Impossibile ottenere l'oggetto sport")
-	    pm.expect(sports.id).include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport")
-		 */
 		
 		// se e' un array la stringa di ricerca deve essere diversa
 		//if ( jsonToParse instanceof JSONArray ) {
 		 if ( getParent() != null && getParent().isJSONArray() || isJSONArray() ) {
 				String arrayNameDotKey = getseparatedCase(numberedVariableName, chiave, ".");
 			
-				sb.append("const "+ snakedVariableName + " = jsonData." + mainElement + ".find (m => m." + chiave + " === pm.collectionVariables.get(\"" + numberedVariableName + "\") );\n");
-
-		    //pm.expect(sports).to.include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport");
-		    //pm.expect(sports).to.be.an("object", "Impossibile ottenere l'oggetto sport")
-		    sb.append("pm.expect(" + arrayNameDotKey + ").include(pm.collectionVariables.get(\"" + numberedVariableName + "\"), \"Impossibile verificare " + numberedVariableName + "\")");
-
+				sb.append("const "+ snakedVariableName + " = jsonData." + mainElement + ".find (m => m." + chiave + " === pm.collectionVariables.get(\"" + snakedVariableName + "\") );\n");
+				sb.append("pm.expect(" + jerarchizedObject + ").include(pm.collectionVariables.get(\"" + snakedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(snakedVariableName) + " + \"]\")");
 		} else {
-			sb.append("pm.expect(jsonData." + jerarchizedObject +").to.eql(pm.collectionVariables.get(\"" + snakedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(snakedVariableName) + " + \"]\")");			
+			sb.append("pm.expect(jsonData." + jerarchizedObject +").to.eql(pm.collectionVariables.get(\"" + snakedVariableName + "\"), \"Impossibile verificare il campo [" + snakedVariableName + "] valore memorizzato[\" + " + getCollectionVariableGET(snakedVariableName) + " + \"]\")");
 		}
 		return sb.toString() + "\n";
 	}
@@ -226,15 +213,15 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		// Passo base: stampa le informazioni della foglia
 		if ( ! ( subtree instanceof JSONArray ) && ! ( subtree instanceof JSONObject )   ) {
 			print( chiave.toString(), subtree.toString(), getNumberedVariable( chiave.toString() ));
-			logger.debug("\n\no o o o o o o o PARSEeLEMENT PASSO BASE chiave[" + chiave + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
+			//logger.debug("\n\no o o o o o o o PARSEeLEMENT PASSO BASE chiave[" + chiave + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
 		
 		} else if ( subtree instanceof JSONArray ) {
-			logger.debug("\n\n# # #PARSEeLEMENT ARRAY currentNode[" + currentNode + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
+			//logger.debug("\n\n# # #PARSEeLEMENT ARRAY currentNode[" + currentNode + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
 			JSONArray jsonArray = (JSONArray) subtree;
 			JSONParserG arrayParser = new JSONParserG(this, chiave, jsonArray);
 			jsonArray.forEach( arrayParser );
 		} else {
-			logger.debug("\n\n#####PARSEeLEMENT OBJECT currentNode[" + currentNode + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
+			//logger.debug("\n\n#####PARSEeLEMENT OBJECT currentNode[" + currentNode + "] chain[" + chain + "] chiave[" + chiave + "] object[" + subtree + "]" );
 			JSONObject jsonObject = (JSONObject) subtree;
 			JSONParserG jsonParser = new JSONParserG(this, chiave, jsonObject);
 			jsonObject.forEach( jsonParser );
@@ -300,7 +287,7 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 			logger.debug("CurrentNode [" + currentNode + "]");
 			currentNode = "";
 		}
-		logger.debug("Parsing Array for currentnode[" + currentNode + "] subtree[" + subtree + "]");
+		//logger.debug("Parsing Array for currentnode[" + currentNode + "] subtree[" + subtree + "]");
 		parseElement(currentNode, subtree);
 	}
 
@@ -308,13 +295,4 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 	public void accept(Object key, Object subTree) {
 		parseElement(key, subTree);
 	}
-	
-	/*
-	 * const sports = jsonData.sport.find
-      (m => m.id === pm.collectionVariables.get("sportCorrenteID"));
-
-    //pm.expect(sports).to.include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport");
-    //pm.expect(sports).to.be.an("object", "Impossibile ottenere l'oggetto sport")
-    pm.expect(sports.id).include(pm.collectionVariables.get("sportCorrenteID"), "Impossibile verificare lo sport")
-	 */
 }
