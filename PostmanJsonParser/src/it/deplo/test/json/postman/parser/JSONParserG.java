@@ -279,11 +279,13 @@ public class JSONParserG implements BiConsumer<Object, Object>, Consumer<Object>
 		
 		int i = 0;
 		
-		while ( listaNomiUniciVariabili.contains( (variableName + i)  ) ) {
+		while ( listaNomiUniciVariabili.contains(variableName) && listaNomiUniciVariabili.contains( (variableName + i)  ) ) {
 			i++;
 		}
 		
-		variableName = variableName + i;
+		if ( i > 0 ) {
+			variableName = variableName + i;
+		}
 		
 		listaNomiUniciVariabili.add(variableName);
 		
